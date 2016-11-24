@@ -1,0 +1,94 @@
+from socket import *
+import threading
+from time import ctime, sleep
+
+def connection_info(clients, addr):
+	print('[%s]:' % ctime())									#显示连接信息				
+	print('Connect from: ', addr)
+	print(' ')
+	clients.send( ('[%s]:' % ctime()).encode('UTF-8') ) 
+	clients.send('与服务器连接成功...'.encode('UTF-8'))
+
+#聊天接受信息线程
+class recvms_Thread(threading.Thread):
+	def __init__(self, servers, clients, BUFSIZ = 1024, name = 'recv_message', daemon = True):
+		threading.Thread.__init__(self)
+		self.servers = servers
+		self.clients = clients
+		self.BUFSIZ = BUFSIZ
+		self.name = name
+		self.daemon = daemon
+
+	def chatting_recv(self):
+		try:
+			while True:
+				data = self.clients.recv(BUFSIZ)
+				print(data.decode('UTF-8'))
+				data = self.clients.recv(BUFSIZ)
+				print(data.decode('UTF-8'))
+				print(' ')			
+		except ConnectionResetError as e:								#客户端输入exit，捕获远程主机断开连接错误
+			print('退出聊天')
+			print(' ')
+			print('Servers Shut Down...')
+			self.clients.close()
+			self.servers.close()
+			exit(0)
+
+	def run(self):
+		self.chatting_recv()
+
+
+
+#聊天发送信息线程
+class sendms_Thread(threading.Thread):
+	def __init__(self, clients,  name = 'send_message', daemon = True):
+		threading.Thread.__init__(self)
+		self.clients = clients
+		self.name = name
+		self.daemon = daemon
+
+	def chatting_send(self):
+		while True:
+			data = input()
+			self.clients.send( ('[%s]:' % ctime()).encode('UTF-8') ) 
+			self.clients.send(data.encode('UTF-8'))
+			print(' ')
+
+	def run(self):
+		self.chatting_send()
+		
+
+
+#设置服务器地址
+HOST = '183.172.187.100'
+PORT = 9999
+ADDR = (HOST, PORT)
+BUFSIZ = 1024
+
+#设置服务器信息
+servers = socket(AF_INET, SOCK_STREAM)
+servers.bind(ADDR)
+servers.listen(5)
+
+try:
+	while True:
+		print('等待连接中...')				
+		print(' ')
+
+		clients, addr = servers.accept()													#成功连接
+		connection_info(clients, addr)														#显示连接信息	
+		
+		#创建双方通信线程(守护线程)
+		Crecv = recvms_Thread(servers, clients, BUFSIZ)
+		Csend = sendms_Thread(clients)
+
+		#聊天
+		Crecv.start()
+		Csend.start()
+	
+		Crecv.join()
+		Csend.join()
+
+except ConnectionResetError as e:
+	print('连接错误...')	
