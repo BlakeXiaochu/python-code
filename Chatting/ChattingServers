@@ -1,6 +1,7 @@
 from socket import *
 import threading
 from time import ctime, sleep
+from atexit import register
 
 def connection_info(clients, addr):
 	print('[%s]:' % ctime())									#显示连接信息				
@@ -23,13 +24,10 @@ class recvms_Thread(threading.Thread):
 		try:
 			while True:
 				data = self.clients.recv(BUFSIZ)
-				print(data.decode('UTF-8'))
-				data = self.clients.recv(BUFSIZ)
-				print(data.decode('UTF-8'))
-				print(' ')			
+				with threading.Lock():
+					print(data.decode('UTF-8'))
+					print(' ')			
 		except ConnectionResetError as e:								#客户端输入exit，捕获远程主机断开连接错误
-			print('退出聊天')
-			print(' ')
 			print('Servers Shut Down...')
 			self.clients.close()
 			self.servers.close()
@@ -51,13 +49,26 @@ class sendms_Thread(threading.Thread):
 	def chatting_send(self):
 		while True:
 			data = input()
-			self.clients.send( ('[%s]:' % ctime()).encode('UTF-8') ) 
-			self.clients.send(data.encode('UTF-8'))
+			self.clients.send( ('[%s]:\r\n%s' % (ctime(), data)).encode('UTF-8') ) 
 			print(' ')
 
 	def run(self):
 		self.chatting_send()
 		
+
+#聊天线程启动类
+class Chatting_Thread(object):
+	def __init__(self, clients, BUFSIZ = 1024):
+		self.clients = clients
+		self.BUFSIZ = BUFSIZ
+
+	def start(self):
+		Crecv = recvms_Thread(servers, clients, BUFSIZ)
+		Csend = sendms_Thread(clients)
+		Crecv.start()
+		Csend.start()
+		Crecv.join()
+		Csend.join()
 
 
 #设置服务器地址
@@ -92,3 +103,8 @@ try:
 
 except ConnectionResetError as e:
 	print('连接错误...')	
+
+
+@register
+def _atexit():
+	print('服务器关闭')

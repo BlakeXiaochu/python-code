@@ -23,10 +23,9 @@ class recvms_Thread(threading.Thread):
 		try:
 			while True:
 				data = self.clients.recv(BUFSIZ)
-				print(data.decode('UTF-8'))
-				data = self.clients.recv(BUFSIZ)
-				print(data.decode('UTF-8'))
-				print(' ')
+				with threading.Lock():
+					print(data.decode('UTF-8'))
+					print(' ')
 		except ConnectionAbortedError as e:								#客户端输入exit，捕获当前主机断开连接错误
 			pass
 		except ConnectionResetError as e:								#捕获服务器断开连接错误
@@ -50,8 +49,7 @@ class sendms_Thread(threading.Thread):
 	def chatting_send(self):
 		while True:
 			data = input()
-			self.clients.send( ('[%s]:' % ctime()).encode('UTF-8') ) 
-			self.clients.send(data.encode('UTF-8'))
+			self.clients.send( ('[%s]:\r\n%s' % (ctime(), data)).encode('UTF-8') ) 
 			print(' ')
 			if data == 'exit' or data == '退出聊天':					#输入exit，退出程序
 				print('Servers Shut Down...')
