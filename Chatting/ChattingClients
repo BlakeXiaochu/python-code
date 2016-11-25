@@ -1,9 +1,10 @@
 from socket import *
 import threading
 from time import ctime, sleep
+from atexit import register
 
 def connection_info(clients):
-	connection_data = clients.recv(BUFSIZ)							#显示连接信息
+	connection_data = clients.recv(BUFSIZ)								#显示连接信息
 	print(connection_data.decode('UTF-8'))
 	connection_data = clients.recv(BUFSIZ)
 	print(connection_data.decode('UTF-8'))
@@ -75,6 +76,8 @@ class Chatting_Thread(object):
 		Csend = sendms_Thread(self.clients)
 		Crecv.start()
 		Csend.start()
+		Crecv.join()
+		Csend.join()
 
 
 #设置服务器地址
@@ -99,13 +102,7 @@ except ConnectionRefusedError as e:
 else:
 	connection_info(clients)										#显示连接信息
 
-#创建双方通信线程
-Crecv = recvms_Thread(clients, BUFSIZ)
-Csend = sendms_Thread(clients)
-
-#聊天
-Crecv.start()
-Csend.start()
-
-Crecv.join()
-Csend.join()	
+#双方通信
+chatting_thread = Chatting_Thread(clients, BUFSIZ)
+chatting_thread.start()
+	
