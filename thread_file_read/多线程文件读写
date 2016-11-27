@@ -1,0 +1,23 @@
+import queue
+import threading
+
+path = r'C:\Users\Blake\Desktop\20160824_113210732_iOS.jpg'
+
+def read_thread(path, Queue, position = 0, BUFSIZE = 1024):
+	with open(path, 'rb') as img:
+		img.seek(position)
+		Queue.put(img.read(BUFSIZE))
+
+byte_queue = queue.Queue()
+
+threads = []
+
+for i in range(5):
+	t = threading.Thread(target = read_thread, args = (path, byte_queue, i*256, 256))
+	threads.append(t)
+
+for i in range(5):
+	threads[i].start()
+
+for i in range(5):
+	print(byte_queue.get())
